@@ -19,18 +19,30 @@ async function initStoracha() {
   try {
     console.log('⏳ Conectando ao Storacha...')
     storachaClient = await create()
-    await storachaClient.login(process.env.STORACHA_EMAIL || 'seu-email@exemplo.com')
+    console.log('✅ Cliente Storacha criado')
+    
+    const email = process.env.STORACHA_EMAIL || 'seu-email@exemplo.com'
+    console.log(`📧 Fazendo login com: ${email}`)
+    await storachaClient.login(email)
+    console.log('✅ Login realizado com sucesso')
     
     // Configurar o space atual
     if (process.env.STORACHA_SPACE) {
+      console.log(`🏠 Configurando space: ${process.env.STORACHA_SPACE}`)
       await storachaClient.setCurrentSpace(process.env.STORACHA_SPACE)
-      console.log('🏠 Space definido como atual')
+      console.log('✅ Space definido como atual')
+    } else {
+      console.log('⚠️ STORACHA_SPACE não configurado, usando space padrão')
     }
     
     console.log('✅ Storacha conectado com sucesso!')
   } catch (error) {
     console.error('❌ Erro ao conectar Storacha:', error.message)
+    console.error('❌ Stack do erro:', error.stack)
     console.error('   Verifique se o email e space estão corretos no .env')
+    
+    // Não sair do processo, mas marcar cliente como null
+    storachaClient = null
   }
 }
 
@@ -49,8 +61,9 @@ app.post('/upload', async (req, res) => {
 
     const filename = req.query.filename || 'file'
     const data = req.body
-
+    
     if (!data || data.length === 0) {
+      console.log('❌ Dados vazios detectados!')
       return res.status(400).json({ error: 'Dados vazios' })
     }
 
@@ -60,26 +73,40 @@ app.post('/upload', async (req, res) => {
     const file = new File([data], filename)
     console.log(`📤 Fazendo upload: ${filename} (${data.length} bytes)`)
     
-    const result = await storachaClient.uploadFile(file)
-    console.log('🔍 Resposta Storacha:', result)
-    
-    // O Storacha retorna um CID diretamente, não um objeto com .cid
-    let cid
-    if (result && typeof result.toString === 'function') {
-      cid = result.toString()
-    } else if (result && result.cid && typeof result.cid.toString === 'function') {
-      cid = result.cid.toString()
-    } else {
-      throw new Error('Formato de resposta inesperado do Storacha')
-    }
-    
-    console.log(`✅ Upload: ${filename} → ${cid}`)
+    try {
+      const result = await storachaClient.uploadFile(file)
+      console.log('🔍 Resposta Storacha completa:', JSON.stringify(result, null, 2))
+      
+      // O Storacha retorna um CID diretamente, não um objeto com .cid
+      let cid
+      if (result && typeof result.toString === 'function') {
+        cid = result.toString()
+      } else if (result && result.cid && typeof result.cid.toString === 'function') {
+        cid = result.cid.toString()
+      } else {
+        console.error('❌ Formato de resposta inesperado:', result)
+        throw new Error('Formato de resposta inesperado do Storacha')
+      }
+      
+      console.log(`✅ Upload: ${filename} → ${cid}`)
 
-    res.json({
-      success: true,
-      cid: cid,
-      url: `https://gateway.storacha.network/ipfs/${cid}`
-    })
+      res.json({
+        success: true,
+        cid: cid,
+        url: `https://gateway.storacha.network/ipfs/${cid}`
+      })
+    } catch (uploadError) {
+      console.error('❌ Erro específico do upload:', uploadError)
+      console.error('❌ Tipo do erro:', typeof uploadError)
+      console.error('❌ Stack do erro:', uploadError.stack)
+      
+      // Tentar extrair mais informações do erro
+      if (uploadError.cause) {
+        console.error('❌ Causa do erro:', uploadError.cause)
+      }
+      
+      throw uploadError
+    }
 
   } catch (error) {
     console.error('❌ Erro upload:', error.message)

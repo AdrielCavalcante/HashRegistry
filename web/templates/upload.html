@@ -129,7 +129,7 @@
         <div class="message {{if contains .mensagem "✅"}}success{{else if contains .mensagem "⚠️"}}warning{{else}}error{{end}}">
             <strong>{{.mensagem}}</strong>
             {{if .hash}}<br><br><strong>Hash SHA256:</strong> {{.hash}}{{end}}
-            {{if .cid}}<br><strong>CID Storacha:</strong> <a href="https://{{.cid}}.ipfs.w3s.link" target="_blank">{{.cid}}</a>{{end}}
+            {{if and .cid (ne .cid "N/A - texto não armazenado")}}<br><strong>CID Storacha:</strong> <a href="https://{{.cid}}.ipfs.w3s.link" target="_blank">{{.cid}}</a>{{end}}
             {{if .tx}}<br><strong>Transação:</strong> {{.tx}}{{end}}
             {{if .bloco}}<br><strong>Bloco:</strong> {{.bloco}}{{end}}
             {{if .arquivo}}<br><strong>Arquivo:</strong> {{.arquivo}}{{end}}

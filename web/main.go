@@ -12,6 +12,7 @@ import (
 	"math/big"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -219,7 +220,7 @@ func main() {
 		// Gera hash SHA256 do conteúdo
 		hashBytes := sha256.Sum256(data)
 		hash := common.BytesToHash(hashBytes[:])
-		
+
 		log.Printf("📦 Hash calculado: %s", hash.Hex())
 
 		// Verificar se já existe antes de fazer upload
@@ -243,17 +244,27 @@ func main() {
 		}
 
 		// Só faz upload se o hash não existir
-		log.Printf("📤 Hash novo, fazendo upload: %s (%d bytes)", filename, len(data))
-		cid, err := uploadToNodeJS(data, filename)
-		if err != nil {
-			log.Printf("❌ Erro no upload: %v", err)
-			c.HTML(http.StatusOK, "upload.html", gin.H{
-				"mensagem": fmt.Sprintf("❌ Erro no upload: %v", err),
-			})
-			return
-		}
+		log.Printf("📤 Hash novo, processando: %s (%d bytes)", filename, len(data))
 
-		log.Printf("✅ Upload concluído - CID: %s", cid)
+		var cid string
+
+		// Só fazer upload para Storacha se for um arquivo real, não texto digitado
+		if filename != "texto digitado" {
+			log.Printf("📤 Fazendo upload do arquivo para Storacha: %s", filename)
+			var err error
+			cid, err = uploadToNodeJS(data, filename)
+			if err != nil {
+				log.Printf("❌ Erro no upload: %v", err)
+				c.HTML(http.StatusOK, "upload.html", gin.H{
+					"mensagem": fmt.Sprintf("❌ Erro no upload: %v", err),
+				})
+				return
+			}
+			log.Printf("✅ Upload concluído - CID: %s", cid)
+		} else {
+			log.Printf("📝 Texto digitado - pulando upload para Storacha")
+			cid = "N/A - texto não armazenado"
+		}
 
 		// Backup local
 		if filename != "texto digitado" {
@@ -279,8 +290,16 @@ func main() {
 			log.Printf("❌ Erro aguardando confirmação: %v", err)
 		}
 
+		// Mensagem de sucesso personalizada baseada no tipo
+		var mensagem string
+		if filename == "texto digitado" {
+			mensagem = "✅ Hash do texto registrado na blockchain com sucesso!"
+		} else {
+			mensagem = "✅ Hash registrado na blockchain e arquivo armazenado no Storacha com sucesso!"
+		}
+
 		c.HTML(http.StatusOK, "upload.html", gin.H{
-			"mensagem": "✅ Hash registrado na blockchain e arquivo armazenado no Storacha com sucesso!",
+			"mensagem": mensagem,
 			"hash":     hash.Hex(),
 			"tx":       tx.Hash().Hex(),
 			"bloco":    receipt.BlockNumber.Uint64(),
@@ -343,18 +362,25 @@ func getEnvOrDefault(key, defaultValue string) string {
 func uploadToNodeJS(data []byte, filename string) (string, error) {
 	// URL do servidor Node.js local
 	nodeServerURL := "http://localhost:3001/upload"
-	
+
 	log.Printf("🚀 Enviando para servidor Node.js: %s (arquivo: %s, %d bytes)", nodeServerURL, filename, len(data))
-	
+
+	// Codificar filename para URL
+	encodedFilename := url.QueryEscape(filename)
+
 	// Criar requisição para servidor Node.js
-	req, err := http.NewRequest("POST", nodeServerURL+"?filename="+filename, bytes.NewReader(data))
+	req, err := http.NewRequest("POST", nodeServerURL+"?filename="+encodedFilename, bytes.NewReader(data))
 	if err != nil {
 		return "", fmt.Errorf("erro ao criar requisição: %v", err)
 	}
-	
+
 	// Headers
 	req.Header.Set("Content-Type", "application/octet-stream")
-	
+
+	log.Printf("🔍 URL completa: %s", req.URL.String())
+	log.Printf("🔍 Content-Type: %s", req.Header.Get("Content-Type"))
+	log.Printf("🔍 Content-Length: %d", len(data))
+
 	// Fazer requisição
 	client := &http.Client{Timeout: 60 * time.Second}
 	resp, err := client.Do(req)
@@ -362,19 +388,20 @@ func uploadToNodeJS(data []byte, filename string) (string, error) {
 		return "", fmt.Errorf("erro ao conectar com servidor Node.js: %v", err)
 	}
 	defer resp.Body.Close()
-	
+
 	// Ler resposta
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("erro ao ler resposta: %v", err)
 	}
-	
+
 	log.Printf("📡 Resposta do servidor Node.js - Status: %d", resp.StatusCode)
-	
+
 	if resp.StatusCode != http.StatusOK {
+		log.Printf("❌ Erro HTTP %d - Body: %s", resp.StatusCode, string(body))
 		return "", fmt.Errorf("erro do servidor Node.js (%d): %s", resp.StatusCode, string(body))
 	}
-	
+
 	// Parse da resposta JSON
 	var response struct {
 		Success bool   `json:"success"`
@@ -382,16 +409,16 @@ func uploadToNodeJS(data []byte, filename string) (string, error) {
 		URL     string `json:"url"`
 		Error   string `json:"error"`
 	}
-	
+
 	if err := json.Unmarshal(body, &response); err != nil {
 		return "", fmt.Errorf("erro ao decodificar resposta: %v", err)
 	}
-	
+
 	if !response.Success {
 		return "", fmt.Errorf("erro no servidor Node.js: %s", response.Error)
 	}
-	
+
 	log.Printf("✅ Upload concluído - CID: %s", response.CID)
-	
+
 	return response.CID, nil
 }
