@@ -108,7 +108,7 @@
         </div>
 
         <div class="info">
-            <strong>Como funciona:</strong> Faça upload de um arquivo ou digite um texto para gerar um hash SHA256 e registrá-lo na blockchain Ethereum. Isso cria uma prova imutável de que o documento existia neste momento.
+            <strong>Como funciona:</strong> Faça upload de um arquivo ou digite um texto para gerar um hash SHA256 e registrá-lo na blockchain Ethereum. O arquivo é armazenado de forma descentralizada no Storacha (web3.storage) e o hash fica registrado na blockchain, criando uma prova imutável de que o documento existia neste momento.
         </div>
 
         <form action="/upload" method="post" enctype="multipart/form-data">
@@ -128,7 +128,8 @@
         {{if .mensagem}}
         <div class="message {{if contains .mensagem "✅"}}success{{else if contains .mensagem "⚠️"}}warning{{else}}error{{end}}">
             <strong>{{.mensagem}}</strong>
-            {{if .hash}}<br><br><strong>Hash:</strong> {{.hash}}{{end}}
+            {{if .hash}}<br><br><strong>Hash SHA256:</strong> {{.hash}}{{end}}
+            {{if .cid}}<br><strong>CID Storacha:</strong> <a href="https://{{.cid}}.ipfs.w3s.link" target="_blank">{{.cid}}</a>{{end}}
             {{if .tx}}<br><strong>Transação:</strong> {{.tx}}{{end}}
             {{if .bloco}}<br><strong>Bloco:</strong> {{.bloco}}{{end}}
             {{if .arquivo}}<br><strong>Arquivo:</strong> {{.arquivo}}{{end}}

@@ -1,8 +1,10 @@
-package main
+﻿package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
@@ -30,7 +32,7 @@ func main() {
 	// Carregar variáveis do .env
 	err := godotenv.Load()
 	if err != nil {
-		log.Println("Aviso: arquivo .env não encontrado, usando configurações padrão")
+		log.Printf("⚠️ Arquivo .env não encontrado, usando valores padrão")
 	}
 
 	// Configurações com valores padrão para desenvolvimento
@@ -76,10 +78,12 @@ func main() {
 		log.Fatalf("Erro instanciando contrato: %v", err)
 	}
 
-	// Criar diretório uploads se não existir
+	// Criar diretório uploads se não existir (backup local)
 	if err := os.MkdirAll("uploads", 0755); err != nil {
 		log.Fatalf("Erro criando diretório uploads: %v", err)
 	}
+
+	log.Println("✅ Sistema inicializado - Go + Node.js + Storacha")
 
 	// Configurar Gin
 	r := gin.Default()
@@ -210,19 +214,15 @@ func main() {
 				c.HTML(http.StatusOK, "upload.html", gin.H{"mensagem": "❌ Erro ao ler o conteúdo do arquivo!"})
 				return
 			}
-
-			// Salvar arquivo no diretório uploads
-			caminho := filepath.Join("uploads", filepath.Base(file.Filename))
-			if err = c.SaveUploadedFile(file, caminho); err != nil {
-				log.Printf("Aviso: erro ao salvar arquivo: %v", err)
-			}
 		}
 
-		// Gerar hash SHA256 do conteúdo
+		// Gera hash SHA256 do conteúdo
 		hashBytes := sha256.Sum256(data)
 		hash := common.BytesToHash(hashBytes[:])
+		
+		log.Printf("📦 Hash calculado: %s", hash.Hex())
 
-		// Verificar se já existe
+		// Verificar se já existe antes de fazer upload
 		exists, err := instance.VerificarHash(&bind.CallOpts{}, hash)
 		if err != nil {
 			log.Printf("❌ Erro ao verificar hash: %v", err)
@@ -233,12 +233,34 @@ func main() {
 		}
 
 		if exists {
+			log.Printf("⚠️ Hash já existe, pulando upload")
 			c.HTML(http.StatusOK, "upload.html", gin.H{
-				"mensagem": "⚠️ Este hash já está registrado na blockchain!",
+				"mensagem": "⚠️ Este arquivo já está registrado na blockchain!",
 				"hash":     hash.Hex(),
 				"arquivo":  filename,
 			})
 			return
+		}
+
+		// Só faz upload se o hash não existir
+		log.Printf("📤 Hash novo, fazendo upload: %s (%d bytes)", filename, len(data))
+		cid, err := uploadToNodeJS(data, filename)
+		if err != nil {
+			log.Printf("❌ Erro no upload: %v", err)
+			c.HTML(http.StatusOK, "upload.html", gin.H{
+				"mensagem": fmt.Sprintf("❌ Erro no upload: %v", err),
+			})
+			return
+		}
+
+		log.Printf("✅ Upload concluído - CID: %s", cid)
+
+		// Backup local
+		if filename != "texto digitado" {
+			caminho := filepath.Join("uploads", filepath.Base(filename))
+			if err = os.WriteFile(caminho, data, 0644); err != nil {
+				log.Printf("Aviso: erro ao salvar backup: %v", err)
+			}
 		}
 
 		// Registrar novo hash na blockchain
@@ -258,11 +280,12 @@ func main() {
 		}
 
 		c.HTML(http.StatusOK, "upload.html", gin.H{
-			"mensagem": "✅ Hash registrado na blockchain com sucesso!",
+			"mensagem": "✅ Hash registrado na blockchain e arquivo armazenado no Storacha com sucesso!",
 			"hash":     hash.Hex(),
 			"tx":       tx.Hash().Hex(),
 			"bloco":    receipt.BlockNumber.Uint64(),
 			"arquivo":  filename,
+			"cid":      cid,
 		})
 	})
 
@@ -314,4 +337,61 @@ func getEnvOrDefault(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+// uploadToNodeJS envia arquivo para servidor Node.js que faz upload para Storacha
+func uploadToNodeJS(data []byte, filename string) (string, error) {
+	// URL do servidor Node.js local
+	nodeServerURL := "http://localhost:3001/upload"
+	
+	log.Printf("🚀 Enviando para servidor Node.js: %s (arquivo: %s, %d bytes)", nodeServerURL, filename, len(data))
+	
+	// Criar requisição para servidor Node.js
+	req, err := http.NewRequest("POST", nodeServerURL+"?filename="+filename, bytes.NewReader(data))
+	if err != nil {
+		return "", fmt.Errorf("erro ao criar requisição: %v", err)
+	}
+	
+	// Headers
+	req.Header.Set("Content-Type", "application/octet-stream")
+	
+	// Fazer requisição
+	client := &http.Client{Timeout: 60 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("erro ao conectar com servidor Node.js: %v", err)
+	}
+	defer resp.Body.Close()
+	
+	// Ler resposta
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("erro ao ler resposta: %v", err)
+	}
+	
+	log.Printf("📡 Resposta do servidor Node.js - Status: %d", resp.StatusCode)
+	
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("erro do servidor Node.js (%d): %s", resp.StatusCode, string(body))
+	}
+	
+	// Parse da resposta JSON
+	var response struct {
+		Success bool   `json:"success"`
+		CID     string `json:"cid"`
+		URL     string `json:"url"`
+		Error   string `json:"error"`
+	}
+	
+	if err := json.Unmarshal(body, &response); err != nil {
+		return "", fmt.Errorf("erro ao decodificar resposta: %v", err)
+	}
+	
+	if !response.Success {
+		return "", fmt.Errorf("erro no servidor Node.js: %s", response.Error)
+	}
+	
+	log.Printf("✅ Upload concluído - CID: %s", response.CID)
+	
+	return response.CID, nil
 }
