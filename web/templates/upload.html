@@ -3,109 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HashRegistry - Upload de Arquivos</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .container {
-            background-color: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            color: #333;
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
-        }
-        input[type="file"], textarea {
-            width: 100%;
-            padding: 10px;
-            border: 2px dashed #ddd;
-            border-radius: 5px;
-            box-sizing: border-box;
-        }
-        textarea {
-            height: 100px;
-            resize: vertical;
-        }
-        button {
-            background-color: #007bff;
-            color: white;
-            padding: 12px 30px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-            width: 100%;
-        }
-        button:hover {
-            background-color: #0056b3;
-        }
-        .message {
-            margin-top: 20px;
-            padding: 15px;
-            border-radius: 5px;
-            word-break: break-all;
-        }
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .warning {
-            background-color: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeeba;
-        }
-        .nav {
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .nav a {
-            color: #007bff;
-            text-decoration: none;
-            margin: 0 10px;
-        }
-        .nav a:hover {
-            text-decoration: underline;
-        }
-        .info {
-            background-color: #e7f3ff;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-        }
-    </style>
+    <title>📤 Upload de Arquivos - Hash Registry</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/hashregistry.css">
 </head>
 <body>
     <div class="container">
-        <h1>📄 HashRegistry - Registro na Blockchain</h1>
-        
-        <div class="nav">
-            <a href="/">📤 Upload</a>
-            <a href="/verificar">🔍 Verificar Hash</a>
-            <a href="/blockchain">📋 Blockchain Explorer</a>
-        </div>
+        <!-- Navegação -->
+        <nav class="navbar navbar-expand-lg mb-4">
+            <div class="container-fluid">
+                <span class="navbar-brand">🔗 Hash Registry</span>
+                <div class="navbar-nav ms-auto">
+                    <a class="nav-link active" href="/">📤 Upload</a>
+                    <a class="nav-link" href="/verificar">🔍 Verificar</a>
+                    <a class="nav-link" href="/blockchain">📋 Blockchain</a>
+                </div>
+            </div>
+        </nav>
+
+        <h1>📄 Registro na Blockchain</h1>
+        <p class="text-center text-muted mb-4">Faça upload de arquivos ou textos para registrar na blockchain</p>
 
         <div class="info">
             <strong>Como funciona:</strong> Faça upload de um arquivo ou digite um texto para gerar um hash SHA256 e registrá-lo na blockchain Ethereum. O arquivo é armazenado de forma descentralizada no Storacha (web3.storage) e o hash fica registrado na blockchain, criando uma prova imutável de que o documento existia neste momento.
@@ -135,6 +52,18 @@
             {{if .arquivo}}<br><strong>Arquivo:</strong> {{.arquivo}}{{end}}
         </div>
         {{end}}
+
+        <!-- Rodapé -->
+        <div class="text-center mt-5 pt-4 border-top">
+            <p class="text-muted">
+                <small>
+                    🔗 <strong>Hash Registry</strong> - Registro seguro de documentos na blockchain<br>
+                    Desenvolvido com Ethereum, Solidity, Go e Bootstrap
+                </small>
+            </p>
+        </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

@@ -164,11 +164,6 @@ func main() {
 			})
 		}
 
-		// Reverter ordem para mostrar mais recentes primeiro
-		for i, j := 0, len(hashes)-1; i < j; i, j = i+1, j-1 {
-			hashes[i], hashes[j] = hashes[j], hashes[i]
-		}
-
 		// Criar estatísticas
 		stats := Stats{
 			TotalHashes:     fmt.Sprintf("%d", totalHashes.Uint64()),
