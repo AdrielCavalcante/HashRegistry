@@ -74,7 +74,7 @@ func main() {
 	fmt.Printf("Usando contrato no endereço: %s\n", contractAddress.Hex())
 
 	// Instanciar o contrato
-	instance, err := hashregistry.NewHashregistry(contractAddress, client)
+	instance, err := hashregistry.NewHashRegistry(contractAddress, client)
 	if err != nil {
 		log.Fatalf("Erro instanciando contrato: %v", err)
 	}
@@ -118,6 +118,7 @@ func main() {
 			Owner         string
 			Timestamp     uint64
 			FormattedTime string
+			CID           string
 		}
 
 		// Estrutura para estatísticas
@@ -161,6 +162,7 @@ func main() {
 				Owner:         details.Owner.Hex(),
 				Timestamp:     uint64(details.Timestamp.Int64()),
 				FormattedTime: formattedTime,
+				CID:           details.Cid,
 			})
 		}
 
@@ -270,7 +272,7 @@ func main() {
 		}
 
 		// Registrar novo hash na blockchain
-		tx, err := instance.RegistrarHash(auth, hash)
+		tx, err := instance.RegistrarHash(auth, hash, cid)
 		if err != nil {
 			log.Printf("❌ Erro ao registrar hash: %v", err)
 			c.HTML(http.StatusOK, "upload.html", gin.H{
