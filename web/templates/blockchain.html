@@ -130,6 +130,10 @@
                 <div class="col-md-8">
                     <h6><strong>Hash #{{add $index 1}}</strong></h6>
                     <div class="hash-value">{{$hash.Hash}}</div>
+                    {{ if ne $hash.CID "N/A - texto não armazenado" }}
+                        <h6 class="mt-3"><strong>CID:</strong></h6>
+                        <div class="hash-value">{{$hash.CID}}</div>
+                    {{ end }}
                 </div>
                 <div class="col-md-4 text-end">
                     <div class="timestamp">
@@ -140,6 +144,11 @@
                         <strong>👤 Por:</strong><br>
                         <small>{{$hash.Owner}}</small>
                     </div>
+                    {{ if ne $hash.CID "N/A - texto não armazenado" }}
+                    <div class="mt-2">
+                        <a class="btn btn-primary mt-3" href="https://{{$hash.CID}}.ipfs.w3s.link" target="_blank">Acessar anexo</a>
+                    </div>
+                    {{ end }}
                 </div>
             </div>
         </div>
