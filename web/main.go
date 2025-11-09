@@ -102,12 +102,12 @@ func main() {
 
 	// Rota principal - formulário de upload
 	r.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "upload.html", gin.H{"mensagem": ""})
+		c.HTML(http.StatusOK, "upload.html", gin.H{"mensagem": "", "status": ""})
 	})
 
 	// Rota para verificar hash
 	r.GET("/verificar", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "verificar.html", gin.H{"resultado": ""})
+		c.HTML(http.StatusOK, "verificar.html", gin.H{"resultado": "", "status": ""})
 	})
 
 	// Rota para visualizar blockchain
@@ -193,7 +193,7 @@ func main() {
 			var file *multipart.FileHeader
 			file, err = c.FormFile("arquivo")
 			if err != nil {
-				c.HTML(http.StatusOK, "upload.html", gin.H{"mensagem": "❌ Erro ao ler o arquivo!"})
+				c.HTML(http.StatusOK, "upload.html", gin.H{"mensagem": "Erro ao ler o arquivo!", "status": "error"})
 				return
 			}
 
@@ -202,14 +202,14 @@ func main() {
 			var f io.ReadCloser
 			f, err = file.Open()
 			if err != nil {
-				c.HTML(http.StatusOK, "upload.html", gin.H{"mensagem": "❌ Erro ao abrir o arquivo!"})
+				c.HTML(http.StatusOK, "upload.html", gin.H{"mensagem": "Erro ao abrir o arquivo!", "status": "error"})
 				return
 			}
 			defer f.Close()
 
 			data, err = io.ReadAll(f)
 			if err != nil {
-				c.HTML(http.StatusOK, "upload.html", gin.H{"mensagem": "❌ Erro ao ler o conteúdo do arquivo!"})
+				c.HTML(http.StatusOK, "upload.html", gin.H{"mensagem": "Erro ao ler o conteúdo do arquivo!", "status": "error"})
 				return
 			}
 		}
@@ -223,9 +223,10 @@ func main() {
 		// Verificar se já existe antes de fazer upload
 		exists, err := instance.VerificarHash(&bind.CallOpts{}, hash)
 		if err != nil {
-			log.Printf("❌ Erro ao verificar hash: %v", err)
+			log.Printf("Erro ao verificar hash: %v", err)
 			c.HTML(http.StatusOK, "upload.html", gin.H{
-				"mensagem": fmt.Sprintf("❌ Erro ao verificar hash: %v", err),
+				"mensagem": fmt.Sprintf("Erro ao verificar hash: %v", err),
+				"status":   "error",
 			})
 			return
 		}
@@ -233,7 +234,8 @@ func main() {
 		if exists {
 			log.Printf("⚠️ Hash já existe, pulando upload")
 			c.HTML(http.StatusOK, "upload.html", gin.H{
-				"mensagem": "⚠️ Este arquivo já está registrado na blockchain!",
+				"mensagem": "Este arquivo já está registrado na blockchain!",
+				"status":   "warning",
 				"hash":     hash.Hex(),
 				"arquivo":  filename,
 			})
@@ -251,9 +253,10 @@ func main() {
 			var err error
 			cid, err = uploadToNodeJS(data, filename)
 			if err != nil {
-				log.Printf("❌ Erro no upload: %v", err)
+				log.Printf("Erro no upload: %v", err)
 				c.HTML(http.StatusOK, "upload.html", gin.H{
-					"mensagem": fmt.Sprintf("❌ Erro no upload: %v", err),
+					"mensagem": fmt.Sprintf("Erro no upload: %v", err),
+					"status":   "error",
 				})
 				return
 			}
@@ -276,7 +279,8 @@ func main() {
 		if err != nil {
 			log.Printf("❌ Erro ao registrar hash: %v", err)
 			c.HTML(http.StatusOK, "upload.html", gin.H{
-				"mensagem": fmt.Sprintf("❌ Erro ao registrar hash na blockchain: %v", err),
+				"mensagem": fmt.Sprintf("Erro ao registrar hash na blockchain: %v", err),
+				"status":   "error",
 			})
 			return
 		}
@@ -290,13 +294,14 @@ func main() {
 		// Mensagem de sucesso personalizada baseada no tipo
 		var mensagem string
 		if filename == "texto digitado" {
-			mensagem = "✅ Hash do texto registrado na blockchain com sucesso!"
+			mensagem = "Hash do texto registrado na blockchain com sucesso!"
 		} else {
-			mensagem = "✅ Hash registrado na blockchain e arquivo armazenado no Storacha com sucesso!"
+			mensagem = "Hash registrado na blockchain e arquivo armazenado no Storacha com sucesso!"
 		}
 
 		c.HTML(http.StatusOK, "upload.html", gin.H{
 			"mensagem": mensagem,
+			"status":   "success",
 			"hash":     hash.Hex(),
 			"tx":       tx.Hash().Hex(),
 			"bloco":    receipt.BlockNumber.Uint64(),
@@ -311,7 +316,8 @@ func main() {
 
 		if len(hashStr) != 66 || hashStr[:2] != "0x" {
 			c.HTML(http.StatusOK, "verificar.html", gin.H{
-				"resultado": "❌ Hash inválido! Deve ter 66 caracteres e começar com 0x",
+				"resultado": "Hash inválido! Deve ter 66 caracteres e começar com 0x",
+				"status":    "error",
 			})
 			return
 		}
@@ -321,28 +327,31 @@ func main() {
 		exists, err := instance.VerificarHash(&bind.CallOpts{}, hash)
 		if err != nil {
 			c.HTML(http.StatusOK, "verificar.html", gin.H{
-				"resultado": fmt.Sprintf("❌ Erro ao verificar hash: %v", err),
+				"resultado": fmt.Sprintf("Erro ao verificar hash: %v", err),
+				"status":    "error",
 			})
 			return
 		}
 
 		if exists {
 			c.HTML(http.StatusOK, "verificar.html", gin.H{
-				"resultado": "✅ Hash encontrado! Este documento foi registrado na blockchain.",
+				"resultado": "Hash encontrado! Este documento foi registrado na blockchain.",
+				"status":    "success",
 				"hash":      hashStr,
 			})
 		} else {
 			c.HTML(http.StatusOK, "verificar.html", gin.H{
-				"resultado": "❌ Hash não encontrado. Este documento não foi registrado.",
+				"resultado": "Hash não encontrado. Este documento não foi registrado.",
+				"status":    "error",
 				"hash":      hashStr,
 			})
 		}
 	})
 
-	fmt.Println("🚀 Servidor iniciado em http://localhost:8080")
-	fmt.Println("📄 Upload de arquivos: http://localhost:8080/")
-	fmt.Println("🔍 Verificar hash: http://localhost:8080/verificar")
-	fmt.Println("📋 Blockchain Explorer: http://localhost:8080/blockchain")
+	fmt.Println("Servidor iniciado em http://localhost:8080")
+	fmt.Println("Upload de arquivos: http://localhost:8080/")
+	fmt.Println("Verificar hash: http://localhost:8080/verificar")
+	fmt.Println("Blockchain Explorer: http://localhost:8080/blockchain")
 
 	r.Run(":8080")
 }

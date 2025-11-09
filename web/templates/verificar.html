@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🔍 Verificar Hash - Hash Registry</title>
+    <title>Verificar Hash - Hash Registry</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
     <link rel="stylesheet" href="/static/css/hashregistry.css">
 </head>
 <body>
@@ -12,16 +13,16 @@
         <!-- Navegação -->
         <nav class="navbar navbar-expand-lg mb-4">
             <div class="container-fluid">
-                <span class="navbar-brand">🔗 Hash Registry</span>
+                <span class="navbar-brand"><i class="bi bi-link-45deg"></i> Hash Registry</span>
                 <div class="navbar-nav ms-auto">
-                    <a class="nav-link" href="/">📤 Upload</a>
-                    <a class="nav-link active" href="/verificar">🔍 Verificar</a>
-                    <a class="nav-link" href="/blockchain">📋 Blockchain</a>
+                    <a class="nav-link" href="/"><i class="bi bi-upload"></i> Upload</a>
+                    <a class="nav-link active" href="/verificar"><i class="bi bi-search"></i> Verificar</a>
+                    <a class="nav-link" href="/blockchain"><i class="bi bi-list-check"></i> Blockchain</a>
                 </div>
             </div>
         </nav>
 
-        <h1>🔍 Verificar Hash</h1>
+        <h1><i class="bi bi-search"></i> Verificar Hash</h1>
         <p class="text-center text-muted mb-4">Verifique se um hash foi registrado na blockchain</p>
 
         <div class="info">
@@ -30,15 +31,15 @@
 
         <form action="/verificar" method="post">
             <div class="form-group">
-                <label for="hash">🔐 Hash SHA256:</label>
+                <label for="hash"><i class="bi bi-shield-lock"></i> Hash SHA256:</label>
                 <input type="text" id="hash" name="hash" placeholder="0x..." maxlength="66" required>
             </div>
 
-            <button type="submit">🔍 Verificar na Blockchain</button>
+            <button type="submit"><i class="bi bi-search"></i> Verificar na Blockchain</button>
         </form>
 
         {{if .resultado}}
-        <div class="result {{if contains .resultado "✅"}}success{{else}}error{{end}}">
+        <div class="result {{.status}}">
             <strong>{{.resultado}}</strong>
             {{if .hash}}<br><br><strong>Hash verificado:</strong> {{.hash}}{{end}}
         </div>
@@ -47,8 +48,8 @@
         <!-- Rodapé -->
         <div class="text-center mt-5 pt-4 border-top">
             <p class="text-muted">
-                <small>
-                    🔗 <strong>Hash Registry</strong> - Registro seguro de documentos na blockchain<br>
+                    <small>
+                    <i class="bi bi-link-45deg"></i> <strong>Hash Registry</strong> - Registro seguro de documentos na blockchain<br>
                     Desenvolvido com Ethereum, Solidity, Go e Bootstrap
                 </small>
             </p>
